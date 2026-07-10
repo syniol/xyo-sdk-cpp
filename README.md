@@ -42,12 +42,20 @@ Requests that fail at the transport layer, return a non-200 status, or contain a
 The C++ SDK can be integrated into your project using one of the following methods.
 
 ### 1. Conan 2 (Recommended)
-Add the SDK to your dependencies in your `conanfile.txt` or `conanfile.py`:
+Since this package is currently distributed via source (and not yet hosted on a public remote), you must first build and install it into your local Conan cache:
+
+```sh
+git clone https://github.com/syniol/xyo-sdk-cpp.git
+cd xyo-sdk-cpp
+conan create . --build=missing
+```
+
+Once installed locally, you can add the SDK to your dependencies in your project's `conanfile.txt` or `conanfile.py`:
 ```text
 [requires]
 xyo-sdk-cpp/1.0.0
 ```
-Run `conan install` to retrieve the package and dependencies:
+Then, install it in your project as usual:
 ```sh
 conan install . --build=missing
 ```

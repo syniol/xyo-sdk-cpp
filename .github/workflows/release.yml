@@ -83,16 +83,16 @@ jobs:
           draft: false
           prerelease: false
 
-      # 6. Publish Conan Package to Remote
-      - name: Publish to Conan Remote
-        run: |
-          pip install conan
-          conan profile detect --force
-          # Authenticate and upload to Syniol's public/private Conan repository
-          # conan remote add syniol-remote <REMOTE_URL>
-          # conan remote login syniol-remote ${{ secrets.CONAN_USER }} -p ${{ secrets.CONAN_PASSWORD }}
-          # conan create . --version=${{ github.ref_name }}
-          # conan upload xyo-sdk-cpp/${{ github.ref_name }} -r=syniol-remote --all
+      # 6. Publish Conan Package to Remote (Commented out until a custom remote is configured or package is pushed to ConanCenter)
+      # - name: Publish to Conan Remote
+      #   run: |
+      #     pip install conan
+      #     conan profile detect --force
+      #     # Authenticate and upload to Syniol's public/private Conan repository
+      #     # conan remote add syniol-remote <REMOTE_URL>
+      #     # conan remote login syniol-remote ${{ secrets.CONAN_USER }} -p ${{ secrets.CONAN_PASSWORD }}
+      #     # conan create . --version=${{ github.ref_name }}
+      #     # conan upload xyo-sdk-cpp/${{ github.ref_name }} -r=syniol-remote --all
 
   verify-example:
     name: Verify Package in Example App
