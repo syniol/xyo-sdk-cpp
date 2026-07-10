@@ -121,8 +121,7 @@ class XYO_SDK_API Client {
 
  private:
   ClientConfig config_;
-  HttpResponse request(const std::string& method, const std::string& path,
-                       const std::string& body) const;
+  HttpResponse post(const std::string& path, const std::string& body) const;
 };
 
 }  // namespace xyo
