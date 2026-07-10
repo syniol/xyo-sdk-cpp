@@ -1,0 +1,9 @@
+[requires]
+xyo-sdk-cpp/1.0.0
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[layout]
+cmake_layout

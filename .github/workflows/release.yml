@@ -1,0 +1,148 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+  id-token: write # Required for GitHub OIDC signing and attestation
+
+jobs:
+  verify-tag:
+    name: Verify Tag Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify Tag is on main Branch
+        run: |
+          git branch -r --contains ${{ github.ref_name }} | grep -E "origin/main" || {
+            echo "Error: Tag must be pushed from the main branch."
+            exit 1;
+          }
+
+      - name: Extract CMake Version
+        id: cmake_version
+        run: |
+          VERSION=$(grep -oE "project\(xyo_sdk_cpp VERSION [0-9]+\.[0-9]+\.[0-9]+\)" CMakeLists.txt | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
+          echo "CMake version is $VERSION"
+          echo "val=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Compare CMake Version to Git Tag
+        run: |
+          TAG_VER=${{ github.ref_name }}
+          TAG_VER=${TAG_VER#v} # Strip leading 'v'
+          CMAKE_VER=${{ steps.cmake_version.outputs.val }}
+          if [ "$TAG_VER" != "$CMAKE_VER" ]; then
+            echo "Error: Git tag ($TAG_VER) does not match CMakeLists.txt version ($CMAKE_VER)"
+            exit 1
+          fi
+
+  publish-release:
+    name: Publish Release & Artifacts
+    needs: verify-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Archive creation
+      - name: Build Archive
+        run: |
+          git archive --format=tar.gz --prefix=xyo-sdk-cpp-${{ github.ref_name }}/ -o xyo-sdk-cpp-${{ github.ref_name }}.tar.gz HEAD
+
+      # 2. Generate Checksums
+      - name: Generate SHA-256 Checksum
+        run: sha256sum xyo-sdk-cpp-${{ github.ref_name }}.tar.gz > xyo-sdk-cpp-${{ github.ref_name }}.tar.gz.sha256
+
+      # 3. Generate SBOM (Software Bill of Materials)
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          format: 'spdx-json'
+          output-file: 'xyo-sdk-cpp-${{ github.ref_name }}.spdx.json'
+
+      # 4. Generate GitHub Attestation (Provenance & Integrity signatures)
+      - name: Generate Artifact Attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'xyo-sdk-cpp-${{ github.ref_name }}.tar.gz'
+
+      # 5. Create Github Release with Assets
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            xyo-sdk-cpp-${{ github.ref_name }}.tar.gz
+            xyo-sdk-cpp-${{ github.ref_name }}.tar.gz.sha256
+            xyo-sdk-cpp-${{ github.ref_name }}.spdx.json
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      # 6. Publish Conan Package to Remote
+      - name: Publish to Conan Remote
+        run: |
+          pip install conan
+          conan profile detect --force
+          # Authenticate and upload to Syniol's public/private Conan repository
+          # conan remote add syniol-remote <REMOTE_URL>
+          # conan remote login syniol-remote ${{ secrets.CONAN_USER }} -p ${{ secrets.CONAN_PASSWORD }}
+          # conan create . --version=${{ github.ref_name }}
+          # conan upload xyo-sdk-cpp/${{ github.ref_name }} -r=syniol-remote --all
+
+  verify-example:
+    name: Verify Package in Example App
+    needs: publish-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Conan & CMake
+        run: |
+          pip install conan
+          conan profile detect --force
+
+      # In a production scenario, Conan resolves the package from the remote we just published to.
+      # For pipeline completeness without active remote credentials, we export the package locally
+      # using the exact tagged version to simulate remote resolution.
+      - name: Export Release Version to Conan Cache
+        run: |
+          TAG_VER=${{ github.ref_name }}
+          TAG_VER=${TAG_VER#v} # Strip leading 'v'
+          conan export . --version=$TAG_VER
+
+      - name: Configure Example App Dependency
+        run: |
+          TAG_VER=${{ github.ref_name }}
+          TAG_VER=${TAG_VER#v}
+          # Dynamically set the exact published tag version in conanfile.txt
+          sed -i "s|xyo-sdk-cpp/1.0.0|xyo-sdk-cpp/$TAG_VER|g" example/conanfile.txt
+
+      - name: Install Dependencies for Example App
+        run: |
+          cd example
+          conan install . --build=missing
+
+      - name: Configure CMake
+        run: |
+          cd example
+          cmake --preset conan-release
+
+      - name: Build Example App
+        run: |
+          cd example
+          cmake --build build/Release
+
+      - name: Run Example Application
+        run: |
+          ./example/build/Release/xyo_example
+
