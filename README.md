@@ -1,4 +1,7 @@
 # XYO.Financial SDK for C++
+
+<p align="center"><img width="420" alt="Gemini_Generated_Image_fsd11ufsd11ufsd1" src="https://github.com/user-attachments/assets/a43c5426-2c0a-4a8f-a41f-ef91eab54c3f" /></p>
+
 The official C++17 SDK for the XYO.Financial transaction enrichment API. A valid API key is available from the [XYO dashboard](https://xyo.financial/dashboard).
 
 ## Requirements
