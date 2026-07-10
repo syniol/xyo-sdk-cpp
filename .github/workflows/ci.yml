@@ -47,7 +47,7 @@ jobs:
         run: cmake --build build --config ${{ matrix.build_type }}
 
       - name: Run Tests
-        run: ctest --test-dir build --configuration ${{ matrix.build_type }} --output-on-failure
+        run: ctest --test-dir build -C ${{ matrix.build_type }} --output-on-failure
 
   conan-validation:
     name: Conan Package Verification
