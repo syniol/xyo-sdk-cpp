@@ -84,6 +84,8 @@ jobs:
           prerelease: false
 
       # 6. Publish Conan Package to Remote (Commented out until a custom remote is configured or package is pushed to ConanCenter)
+      # • JFrog Artifactory (The company behind Conan, they offer a free tier for Open Source / C++ projects)
+      # • Cloudsmith or GitLab Packages (GitHub Packages unfortunately does not have native Conan support yet).
       # - name: Publish to Conan Remote
       #   run: |
       #     pip install conan
