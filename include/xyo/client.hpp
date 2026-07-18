@@ -49,7 +49,7 @@ struct XYO_SDK_API EnrichTransactionCollectionResponse {
 
 enum class EnrichmentCollectionStatus { ready, failed, pending };
 
-XYO_SDK_API std::string to_string(EnrichmentCollectionStatus status);
+[[nodiscard]] XYO_SDK_API std::string to_string(EnrichmentCollectionStatus status);
 
 struct XYO_SDK_API HttpRequest {
   std::string method;
@@ -84,6 +84,7 @@ struct XYO_SDK_API ClientConfig {
   std::size_t max_json_depth = 64;
   std::size_t max_json_nodes = 100'000;
   std::size_t max_collection_size = 1'000;
+  int max_retries = 3;
 
   // Intended only for local development with the built-in transport. HTTPS
   // remains mandatory unless this is explicitly enabled.
@@ -93,19 +94,18 @@ struct XYO_SDK_API ClientConfig {
   ClientConfig(std::string key, std::string url = "https://api.xyo.financial", std::shared_ptr<HttpTransport> transport = nullptr)
       : api_key(std::move(key)), api_base_url(std::move(url)), http_transport(std::move(transport)) {}
 
-  ~ClientConfig();
+  ClientConfig(const ClientConfig&) = delete;
+  ClientConfig& operator=(const ClientConfig&) = delete;
+  ClientConfig(ClientConfig&&) noexcept = default;
+  ClientConfig& operator=(ClientConfig&&) noexcept = default;
+
+  ~ClientConfig() noexcept;
 };
 
-enum class ErrorCategory { validation, transport, http, parsing, protocol };
+enum class ErrorCategory { validation, transport, http, parsing };
 
 class XYO_SDK_API Error : public std::runtime_error {
  public:
-  explicit Error(const std::string& message)
-      : std::runtime_error(message), category_(ErrorCategory::protocol), http_status_code_(0), transport_code_(0) {}
-
-  explicit Error(const char* message)
-      : std::runtime_error(message), category_(ErrorCategory::protocol), http_status_code_(0), transport_code_(0) {}
-
   Error(ErrorCategory category, const std::string& message, long http_status_code = 0,
         int transport_code = 0);
 
@@ -114,15 +114,28 @@ class XYO_SDK_API Error : public std::runtime_error {
   int transport_code() const noexcept { return transport_code_; }
 
  private:
-  ErrorCategory category_ = ErrorCategory::protocol;
+  ErrorCategory category_ = ErrorCategory::validation;
   long http_status_code_ = 0;
   int transport_code_ = 0;
 };
 
+/**
+ * @brief The Client class is the primary entry point for the XYO C++ SDK.
+ * 
+ * Thread safety: Client instances are safe to use concurrently from multiple
+ * threads, provided that the underlying HttpTransport implementation is also
+ * thread-safe (the default built-in CurlTransport is thread-safe).
+ */
 class XYO_SDK_API Client {
  public:
   explicit Client(ClientConfig config);
-  ~Client();
+
+  Client(const Client&) = delete;
+  Client& operator=(const Client&) = delete;
+  Client(Client&&) noexcept = default;
+  Client& operator=(Client&&) noexcept = default;
+
+  ~Client() noexcept;
 
   EnrichmentResponse enrich_transaction(const EnrichmentRequest& request) const;
   EnrichTransactionCollectionResponse enrich_transaction_collection(
