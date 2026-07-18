@@ -60,7 +60,7 @@ jobs:
 
       # 3. Generate SBOM (Software Bill of Materials)
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@d4469e71d3e18a9942a78622179836369527ec56 # v0.18.0
+        uses: anchore/sbom-action@v0
         with:
           format: 'spdx-json'
           output-file: 'xyo-sdk-cpp-${{ github.ref_name }}.spdx.json'
@@ -73,7 +73,7 @@ jobs:
 
       # 5. Create Github Release with Assets
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@32d0c242c262024b4555890b299e578c772e21c8 # v2.0.6
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             xyo-sdk-cpp-${{ github.ref_name }}.tar.gz
