@@ -60,20 +60,20 @@ jobs:
 
       # 3. Generate SBOM (Software Bill of Materials)
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@d710cd72b0b1464b73256191b29a1b94d7ed40f8 # v0.17.9
+        uses: anchore/sbom-action@d4469e71d3e18a9942a78622179836369527ec56 # v0.18.0
         with:
           format: 'spdx-json'
           output-file: 'xyo-sdk-cpp-${{ github.ref_name }}.spdx.json'
 
       # 4. Generate GitHub Attestation (Provenance & Integrity signatures)
       - name: Generate Artifact Attestation
-        uses: actions/attest-build-provenance@7669d356de45d781b8e8412675d8628005b65103 # v1.4.3
+        uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c # v1.4.3
         with:
           subject-path: 'xyo-sdk-cpp-${{ github.ref_name }}.tar.gz'
 
       # 5. Create Github Release with Assets
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@c07fce673a6e9a7e69cf24794e508544e3b7b313 # v2.0.6
+        uses: softprops/action-gh-release@32d0c242c262024b4555890b299e578c772e21c8 # v2.0.6
         with:
           files: |
             xyo-sdk-cpp-${{ github.ref_name }}.tar.gz
