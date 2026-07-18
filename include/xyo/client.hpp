@@ -84,6 +84,7 @@ struct XYO_SDK_API ClientConfig {
   std::size_t max_json_depth = 64;
   std::size_t max_json_nodes = 100'000;
   std::size_t max_collection_size = 1'000;
+  int max_retries = 3;
 
   // Intended only for local development with the built-in transport. HTTPS
   // remains mandatory unless this is explicitly enabled.
@@ -93,8 +94,8 @@ struct XYO_SDK_API ClientConfig {
   ClientConfig(std::string key, std::string url = "https://api.xyo.financial", std::shared_ptr<HttpTransport> transport = nullptr)
       : api_key(std::move(key)), api_base_url(std::move(url)), http_transport(std::move(transport)) {}
 
-  ClientConfig(const ClientConfig&) = default;
-  ClientConfig& operator=(const ClientConfig&) = default;
+  ClientConfig(const ClientConfig&) = delete;
+  ClientConfig& operator=(const ClientConfig&) = delete;
   ClientConfig(ClientConfig&&) noexcept = default;
   ClientConfig& operator=(ClientConfig&&) noexcept = default;
 
@@ -129,8 +130,8 @@ class XYO_SDK_API Client {
  public:
   explicit Client(ClientConfig config);
 
-  Client(const Client&) = default;
-  Client& operator=(const Client&) = default;
+  Client(const Client&) = delete;
+  Client& operator=(const Client&) = delete;
   Client(Client&&) noexcept = default;
   Client& operator=(Client&&) noexcept = default;
 

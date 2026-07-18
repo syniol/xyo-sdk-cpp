@@ -117,7 +117,7 @@ int main() {
   {
     xyo::ClientConfig insecure_config("test-key", "http://insecure-api.xyo.financial", nullptr);
     insecure_config.allow_insecure_http = true;
-    xyo::Client insecure_client(insecure_config);
+    xyo::Client insecure_client(std::move(insecure_config));
   }
 
   // 5. JSON Parsing constraints: duplicate key detection
@@ -130,7 +130,7 @@ int main() {
   {
     xyo::ClientConfig depth_config{"test-key", "https://example.test", http};
     depth_config.max_json_depth = 3;
-    xyo::Client depth_client(depth_config);
+    xyo::Client depth_client(std::move(depth_config));
 
     // Depth = 4 (object -> array -> array -> array -> scalar)
     http->response = {200, R"({"merchant":[[[1]]],"description":"test","logo":"test","categories":[]})"};
@@ -143,7 +143,7 @@ int main() {
   {
     xyo::ClientConfig node_config{"test-key", "https://example.test", http};
     node_config.max_json_nodes = 5;
-    xyo::Client node_client(node_config);
+    xyo::Client node_client(std::move(node_config));
 
     http->response = {200, R"({"merchant":"Costa","description":"Coffee","logo":"url","categories":["a","b"]})"};
     expects_error(xyo::ErrorCategory::parsing, "exceeded maximum JSON node limit", [&] {
@@ -155,7 +155,7 @@ int main() {
   {
     xyo::ClientConfig coll_config{"test-key", "https://example.test", http};
     coll_config.max_collection_size = 2;
-    xyo::Client coll_client(coll_config);
+    xyo::Client coll_client(std::move(coll_config));
 
     expects_error(xyo::ErrorCategory::validation, "collection size exceeds max_collection_size limit", [&] {
       coll_client.enrich_transaction_collection({{"a", "GB"}, {"b", "US"}, {"c", "CA"}});

@@ -4,10 +4,13 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <iomanip>
 #include <map>
 #include <mutex>
+#include <random>
 #include <sstream>
+#include <thread>
 #include <utility>
 
 namespace xyo {
@@ -386,6 +389,7 @@ class CurlTransport final : public HttpTransport {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_body);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &context);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "xyo-sdk-cpp/1.0.1");
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
     CURLcode code = curl_easy_perform(curl);
     if (code == CURLE_OK) {
@@ -428,16 +432,41 @@ Client::Client(ClientConfig config) : config_(std::move(config)) {
 }
 
 Client::~Client() noexcept {
-  std::fill(config_.api_key.begin(), config_.api_key.end(), '\0');
+  // config_.api_key is wiped by ClientConfig::~ClientConfig()
 }
 
 HttpResponse Client::post(const std::string& path, const std::string& body) const {
   HttpRequest request{"POST", config_.api_base_url + path,
                       {{"Content-Type", "application/json"}, {"Accept", "application/json"},
                        {"Authorization", "Bearer " + config_.api_key}}, body};
-  HttpResponse response = config_.http_transport->send(request);
-  if (response.status_code != 200)
-    throw Error(ErrorCategory::http, "XYO API returned status code " + std::to_string(response.status_code), response.status_code);
+  HttpResponse response;
+  int attempts = 0;
+  int max_attempts = std::max(1, config_.max_retries + 1);
+
+  while (attempts < max_attempts) {
+    response = config_.http_transport->send(request);
+    
+    if (response.status_code == 429 || response.status_code >= 500) {
+      attempts++;
+      if (attempts < max_attempts) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> jitter(0, 100);
+        long delay_ms = (1L << attempts) * 100 + jitter(gen);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+        continue;
+      }
+    }
+    break;
+  }
+
+  if (response.status_code != 200) {
+    std::string error_msg = "XYO API returned status code " + std::to_string(response.status_code);
+    if (!response.body.empty()) {
+      error_msg += ": " + response.body;
+    }
+    throw Error(ErrorCategory::http, error_msg, response.status_code);
+  }
   return response;
 }
 
