@@ -54,7 +54,7 @@ XYO_SDK_API std::string to_string(EnrichmentCollectionStatus status);
 struct XYO_SDK_API HttpRequest {
   std::string method;
   std::string url;
-  std::vector<std::string> headers;
+  std::vector<std::pair<std::string, std::string>> headers;
   std::string body;
 };
 
@@ -88,15 +88,25 @@ struct XYO_SDK_API ClientConfig {
   // Intended only for local development with the built-in transport. HTTPS
   // remains mandatory unless this is explicitly enabled.
   bool allow_insecure_http = false;
+
+  ClientConfig() = default;
+  ClientConfig(std::string key, std::string url = "https://api.xyo.financial", std::shared_ptr<HttpTransport> transport = nullptr)
+      : api_key(std::move(key)), api_base_url(std::move(url)), http_transport(std::move(transport)) {}
+
+  ~ClientConfig();
 };
 
 enum class ErrorCategory { validation, transport, http, parsing, protocol };
 
 class XYO_SDK_API Error : public std::runtime_error {
  public:
-  using std::runtime_error::runtime_error;
+  explicit Error(const std::string& message)
+      : std::runtime_error(message), category_(ErrorCategory::protocol), http_status_code_(0), transport_code_(0) {}
 
-  Error(ErrorCategory category, std::string message, long http_status_code = 0,
+  explicit Error(const char* message)
+      : std::runtime_error(message), category_(ErrorCategory::protocol), http_status_code_(0), transport_code_(0) {}
+
+  Error(ErrorCategory category, const std::string& message, long http_status_code = 0,
         int transport_code = 0);
 
   ErrorCategory category() const noexcept { return category_; }
@@ -112,6 +122,7 @@ class XYO_SDK_API Error : public std::runtime_error {
 class XYO_SDK_API Client {
  public:
   explicit Client(ClientConfig config);
+  ~Client();
 
   EnrichmentResponse enrich_transaction(const EnrichmentRequest& request) const;
   EnrichTransactionCollectionResponse enrich_transaction_collection(

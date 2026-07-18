@@ -14,7 +14,7 @@ jobs:
     name: Verify Tag Integrity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
@@ -47,7 +47,7 @@ jobs:
     needs: verify-tag
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       # 1. Archive creation
       - name: Build Archive
@@ -60,20 +60,20 @@ jobs:
 
       # 3. Generate SBOM (Software Bill of Materials)
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@d710cd72b0b1464b73256191b29a1b94d7ed40f8 # v0.17.9
         with:
           format: 'spdx-json'
           output-file: 'xyo-sdk-cpp-${{ github.ref_name }}.spdx.json'
 
       # 4. Generate GitHub Attestation (Provenance & Integrity signatures)
       - name: Generate Artifact Attestation
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@7669d356de45d781b8e8412675d8628005b65103 # v1.4.3
         with:
           subject-path: 'xyo-sdk-cpp-${{ github.ref_name }}.tar.gz'
 
       # 5. Create Github Release with Assets
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@c07fce673a6e9a7e69cf24794e508544e3b7b313 # v2.0.6
         with:
           files: |
             xyo-sdk-cpp-${{ github.ref_name }}.tar.gz
@@ -101,10 +101,10 @@ jobs:
     needs: publish-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: '3.11'
 
@@ -127,7 +127,7 @@ jobs:
           TAG_VER=${{ github.ref_name }}
           TAG_VER=${TAG_VER#v}
           # Dynamically set the exact published tag version in conanfile.txt
-          sed -i "s|xyo-sdk-cpp/1.0.0|xyo-sdk-cpp/$TAG_VER|g" example/conanfile.txt
+          sed -i "s|xyo-sdk-cpp/1.0.1|xyo-sdk-cpp/$TAG_VER|g" example/conanfile.txt
 
       - name: Install Dependencies for Example App
         run: |
