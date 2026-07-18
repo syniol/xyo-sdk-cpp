@@ -92,6 +92,9 @@ find_package(XYOSDK CONFIG REQUIRED)
 target_link_libraries(my_application PRIVATE XYO::SDK)
 ```
 
+### Thread Safety
+The `Client` class is thread-safe and can be safely shared across multiple threads. The default built-in `CurlTransport` manages request handles independently on a per-call basis. If a custom `HttpTransport` is provided, it must be thread-safe if the `Client` is used concurrently.
+
 ## License
 
 Copyright © 2025 Syniol Limited. All rights reserved. See [LICENSE](LICENSE).

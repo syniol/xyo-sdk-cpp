@@ -1,6 +1,5 @@
 #include "xyo/client.hpp"
 
-#include <cassert>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -170,6 +169,12 @@ int main() {
   expects_error(xyo::ErrorCategory::validation, "invalid transaction collection ID format", [&] {
     client.enrich_transaction_collection_status("id?param=value");
   });
+
+  // 10. Empty collection handling test
+  http->response = {200, R"({"id":"empty-123","link":"https://example.test/empty.tar.gz"})"};
+  auto empty_coll = client.enrich_transaction_collection({});
+  TEST_ASSERT(empty_coll.id == "empty-123");
+  TEST_ASSERT(http->request.body == "[]");
 
   std::cout << "All XYO C++ SDK tests passed\n";
   return 0;

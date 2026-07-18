@@ -290,9 +290,9 @@ std::string json_string(const std::string& input) {
       case '\t': output += "\\t"; break;
       default:
         if (c < 0x20) {
-          std::ostringstream ss;
-          ss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
-          output += ss.str();
+          char buf[7];
+          std::snprintf(buf, sizeof(buf), "\\u%04x", static_cast<int>(c));
+          output += buf;
         } else {
           output += c;
         }
@@ -310,12 +310,14 @@ std::string request_json(const EnrichmentRequest& request) {
 struct WriteContext {
   std::string* body;
   std::size_t max_bytes;
+  bool limit_exceeded = false;
 };
 
 size_t write_body(char* data, size_t size, size_t count, void* target) {
   auto* context = static_cast<WriteContext*>(target);
   size_t bytes = size * count;
   if (context->body->size() + bytes > context->max_bytes) {
+    context->limit_exceeded = true;
     return 0;
   }
   context->body->append(data, bytes);
@@ -380,10 +382,10 @@ class CurlTransport final : public HttpTransport {
       curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
     }
 
-    WriteContext context{&response.body, max_response_bytes_};
+    WriteContext context{&response.body, max_response_bytes_, false};
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_body);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &context);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "xyo-sdk-cpp/1.0");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "xyo-sdk-cpp/1.0.1");
 
     CURLcode code = curl_easy_perform(curl);
     if (code == CURLE_OK) {
@@ -392,6 +394,9 @@ class CurlTransport final : public HttpTransport {
 
     if (code != CURLE_OK) {
       std::string error = curl_easy_strerror(code);
+      if (code == CURLE_WRITE_ERROR && context.limit_exceeded) {
+        throw Error(ErrorCategory::transport, "HTTP request failed: response size exceeded maximum limit of " + std::to_string(max_response_bytes_) + " bytes", 0, static_cast<int>(code));
+      }
       throw Error(ErrorCategory::transport, "HTTP request failed: " + error, 0, static_cast<int>(code));
     }
     return response;
@@ -422,7 +427,7 @@ Client::Client(ClientConfig config) : config_(std::move(config)) {
   if (!config_.http_transport) config_.http_transport = std::make_shared<CurlTransport>(config_);
 }
 
-Client::~Client() {
+Client::~Client() noexcept {
   std::fill(config_.api_key.begin(), config_.api_key.end(), '\0');
 }
 
@@ -477,6 +482,7 @@ EnrichmentCollectionStatus Client::enrich_transaction_collection_status(
       throw Error(ErrorCategory::validation, "invalid transaction collection ID format");
     }
   }
+  // NOTE: XYO API status endpoint requires a POST request with an empty body
   Json root = JsonParser(post("/v1/ai/finance/enrichment/transactions/status/" + id, "").body,
                          config_.max_json_depth, config_.max_json_nodes).parse();
   const std::string& status = required(root, "status", Json::Kind::string).text;
@@ -489,7 +495,7 @@ EnrichmentCollectionStatus Client::enrich_transaction_collection_status(
 Error::Error(ErrorCategory category, const std::string& message, long http_status_code, int transport_code)
     : std::runtime_error(message), category_(category), http_status_code_(http_status_code), transport_code_(transport_code) {}
 
-ClientConfig::~ClientConfig() {
+ClientConfig::~ClientConfig() noexcept {
   std::fill(api_key.begin(), api_key.end(), '\0');
 }
 
