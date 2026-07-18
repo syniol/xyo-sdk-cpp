@@ -441,7 +441,7 @@ HttpResponse Client::post(const std::string& path, const std::string& body) cons
                        {"Authorization", "Bearer " + config_.api_key}}, body};
   HttpResponse response;
   int attempts = 0;
-  int max_attempts = std::max(1, config_.max_retries + 1);
+  int max_attempts = (std::max)(1, config_.max_retries + 1);
 
   while (attempts < max_attempts) {
     response = config_.http_transport->send(request);
