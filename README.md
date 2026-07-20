@@ -60,7 +60,7 @@ conan create . --build=missing
 Once installed locally, you can add the SDK to your dependencies in your project's `conanfile.txt` or `conanfile.py`:
 ```text
 [requires]
-xyo-sdk-cpp/1.0.1
+xyo-sdk-cpp/1.1.0
 ```
 Then, install it in your project as usual:
 ```sh
@@ -80,7 +80,7 @@ include(FetchContent)
 FetchContent_Declare(
   xyo-sdk-cpp
   GIT_REPOSITORY https://github.com/syniol/xyo-sdk-cpp.git
-  GIT_TAG        v1.0.1
+  GIT_TAG        v1.1.0
 )
 FetchContent_MakeAvailable(xyo-sdk-cpp)
 ```
@@ -95,6 +95,8 @@ target_link_libraries(my_application PRIVATE XYO::SDK)
 ### Thread Safety
 The `Client` class is thread-safe and can be safely shared across multiple threads. The default built-in `CurlTransport` manages request handles independently on a per-call basis. If a custom `HttpTransport` is provided, it must be thread-safe if the `Client` is used concurrently.
 
-## License
 
-Copyright © 2025 Syniol Limited. All rights reserved. See [LICENSE](LICENSE).
+## License
+This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
+
+Copyright &copy; 2025 Syniol Limited.

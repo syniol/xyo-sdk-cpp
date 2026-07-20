@@ -1,5 +1,5 @@
 // Copyright (c) 2025 Syniol Limited
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSD-3-Clause
 
 #pragma once
 
